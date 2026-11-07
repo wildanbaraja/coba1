@@ -84,7 +84,8 @@ object CountdownNotification {
             .setStyle(progressStyle)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setSilent(true)
+            // No setSilent(): NotificationCompat implements it by putting the notification in a
+            // "silent" group, which OEMs may treat as ineligible. The channel has no sound instead.
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             // The countdown itself: rendered by System UI, so it ticks every second
@@ -127,6 +128,39 @@ object CountdownNotification {
 
     fun canPost(context: Context): Boolean =
         context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+
+    enum class LiveStatus {
+        /** Android 15 or older: Live Updates don't exist, a normal notification is shown. */
+        UNSUPPORTED_OS,
+        /** The system currently shows our countdown as a Live Update. */
+        PROMOTED,
+        /** canPostPromotedNotifications() is false: user toggle off, or Samsung's allowlist. */
+        BLOCKED_BY_SYSTEM,
+        /** Countdown is showing but doesn't meet Android's promotion rules (would be a bug here). */
+        NOT_ELIGIBLE,
+        /** Allowed and eligible, but the system still didn't promote it (OEM-specific criteria). */
+        NOT_PROMOTED,
+        /** Allowed; no countdown is showing right now, so promotion can't be verified yet. */
+        READY,
+    }
+
+    /**
+     * What the system actually did with our notification. The FLAG_PROMOTED_ONGOING flag is set
+     * by the system (not by us) on the posted notification when it is promoted.
+     */
+    fun liveStatus(context: Context): LiveStatus {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return LiveStatus.UNSUPPORTED_OS
+        val nm = context.getSystemService(NotificationManager::class.java)
+        val active = runCatching { nm.activeNotifications }.getOrNull()
+            ?.firstOrNull { it.id == NOTIFICATION_ID }?.notification
+        return when {
+            active != null && active.flags and Notification.FLAG_PROMOTED_ONGOING != 0 -> LiveStatus.PROMOTED
+            !nm.canPostPromotedNotifications() -> LiveStatus.BLOCKED_BY_SYSTEM
+            active == null -> LiveStatus.READY
+            !active.hasPromotableCharacteristics() -> LiveStatus.NOT_ELIGIBLE
+            else -> LiveStatus.NOT_PROMOTED
+        }
+    }
 
     /** Whether the user allows Live Updates (Android 16+). Always true on older versions. */
     fun canPromote(context: Context): Boolean =

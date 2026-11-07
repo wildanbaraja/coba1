@@ -78,6 +78,9 @@ class MainActivity : AppCompatActivity() {
         binding.save.setOnClickListener { save() }
         binding.testNow.setOnClickListener {
             CountdownService.start(this, Prayer.MAGHRIB, System.currentTimeMillis() + 60_000L, 1)
+            // Give System UI a moment to post/promote it, then report what really happened.
+            binding.liveStatus.setText(R.string.live_checking)
+            binding.root.postDelayed({ if (!isDestroyed) refreshLiveStatus() }, 2_000)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -215,18 +218,81 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-            setPermRow(binding.permLiveButton, CountdownNotification.canPromote(this)) {
-                startActivity(
-                    Intent(AndroidSettings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS)
-                        .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, packageName),
+        refreshLiveStatus()
+    }
+
+    private fun refreshLiveStatus() {
+        val status = CountdownNotification.liveStatus(this)
+        if (status == CountdownNotification.LiveStatus.UNSUPPORTED_OS) {
+            binding.permLiveLabel.setText(R.string.perm_live_updates_na)
+            binding.permLiveButton.visibility = View.GONE
+            binding.liveStatus.visibility = View.GONE
+            return
+        }
+        val ok = status == CountdownNotification.LiveStatus.PROMOTED ||
+            status == CountdownNotification.LiveStatus.READY
+        setPermRow(binding.permLiveButton, ok) { showLiveHelp() }
+        if (!ok) binding.permLiveButton.setText(R.string.perm_help)
+        binding.liveStatus.setText(
+            when (status) {
+                CountdownNotification.LiveStatus.PROMOTED -> R.string.live_promoted
+                CountdownNotification.LiveStatus.BLOCKED_BY_SYSTEM -> R.string.live_blocked
+                CountdownNotification.LiveStatus.NOT_ELIGIBLE -> R.string.live_not_eligible
+                CountdownNotification.LiveStatus.NOT_PROMOTED -> R.string.live_not_promoted
+                else -> R.string.live_ready
+            },
+        )
+        binding.liveStatus.setTextColor(ContextCompat.getColor(this, if (ok) R.color.ok else R.color.warn))
+    }
+
+    private fun showLiveHelp() {
+        val devOptionsOn = AndroidSettings.Global.getInt(
+            contentResolver, AndroidSettings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0,
+        ) != 0
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.live_help_title)
+            .setMessage(R.string.live_help_body)
+            .setPositiveButton(if (devOptionsOn) R.string.open_developer_options else R.string.open_about_phone) { _, _ ->
+                tryStart(
+                    Intent(
+                        if (devOptionsOn) {
+                            AndroidSettings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+                        } else {
+                            AndroidSettings.ACTION_DEVICE_INFO_SETTINGS
+                        },
+                    ),
                 )
             }
-        } else {
-            binding.permLiveLabel.setText(R.string.perm_live_updates_na)
-            binding.permLiveButton.visibility = android.view.View.GONE
-        }
+            .setNeutralButton(R.string.open_app_notifications) { _, _ -> openLiveUpdateSettings() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
+
+    /** Android's per-app Live Updates page; Samsung doesn't implement it, so fall back. */
+    private fun openLiveUpdateSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA &&
+            tryStart(
+                Intent(AndroidSettings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS)
+                    .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, packageName),
+            )
+        ) {
+            return
+        }
+        tryStart(
+            Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, packageName),
+        )
+    }
+
+    private fun tryStart(intent: Intent): Boolean =
+        try {
+            startActivity(intent)
+            true
+        } catch (e: android.content.ActivityNotFoundException) {
+            false
+        } catch (e: SecurityException) {
+            false
+        }
 
     private fun setPermRow(button: Button, ok: Boolean, fix: () -> Unit) {
         button.text = getString(if (ok) R.string.perm_ok else R.string.perm_fix)
