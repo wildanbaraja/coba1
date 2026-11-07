@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity() {
         settings.method = CalcMethod.entries[binding.method.selectedItemPosition]
         settings.madhab = AsrMadhab.entries[binding.madhab.selectedItemPosition]
         settings.adjustMinutes = binding.adjust.text?.toString()?.toIntOrNull() ?: 0
+        binding.adjust.setText(settings.adjustMinutes.toString()) // show the clamped value
         settings.countdownMinutes = binding.duration.text?.toString()?.toIntOrNull() ?: 15
         binding.duration.setText(settings.countdownMinutes.toString())
         prayerChecks.forEach { (p, cb) -> settings.setEnabled(p, cb.isChecked) }

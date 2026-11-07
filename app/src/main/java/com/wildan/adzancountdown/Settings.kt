@@ -15,20 +15,29 @@ class Settings(context: Context) {
 
     /** myQuran / Kemenag city id, e.g. "1301" for Kota Jakarta. */
     var cityId: String
-        get() = prefs.getString(KEY_CITY_ID, null) ?: DEFAULT_CITY_ID
-        set(v) = prefs.edit { putString(KEY_CITY_ID, v) }
+        get() = prefs.getString(KEY_CITY_ID, null)?.takeIf(KemenagRepository::isValidCityId) ?: DEFAULT_CITY_ID
+        set(v) {
+            require(KemenagRepository.isValidCityId(v)) { "Invalid city id" }
+            prefs.edit { putString(KEY_CITY_ID, v) }
+        }
 
     var cityName: String
         get() = prefs.getString(KEY_CITY_NAME, null) ?: DEFAULT_CITY_NAME
         set(v) = prefs.edit { putString(KEY_CITY_NAME, v) }
 
     var latitude: Double
-        get() = prefs.getString(KEY_LAT, null)?.toDoubleOrNull() ?: DEFAULT_LAT
-        set(v) = prefs.edit { putString(KEY_LAT, v.toString()) }
+        get() = prefs.getString(KEY_LAT, null)?.toDoubleOrNull()?.takeIf { it in -90.0..90.0 } ?: DEFAULT_LAT
+        set(v) {
+            require(v in -90.0..90.0) { "Invalid latitude" }
+            prefs.edit { putString(KEY_LAT, v.toString()) }
+        }
 
     var longitude: Double
-        get() = prefs.getString(KEY_LNG, null)?.toDoubleOrNull() ?: DEFAULT_LNG
-        set(v) = prefs.edit { putString(KEY_LNG, v.toString()) }
+        get() = prefs.getString(KEY_LNG, null)?.toDoubleOrNull()?.takeIf { it in -180.0..180.0 } ?: DEFAULT_LNG
+        set(v) {
+            require(v in -180.0..180.0) { "Invalid longitude" }
+            prefs.edit { putString(KEY_LNG, v.toString()) }
+        }
 
     var method: CalcMethod
         get() = runCatching { CalcMethod.valueOf(prefs.getString(KEY_METHOD, null)!!) }.getOrDefault(CalcMethod.KEMENAG)
@@ -40,12 +49,12 @@ class Settings(context: Context) {
 
     /** Ihtiyat / correction minutes added to every computed time. */
     var adjustMinutes: Int
-        get() = prefs.getInt(KEY_ADJUST, 2)
-        set(v) = prefs.edit { putInt(KEY_ADJUST, v) }
+        get() = prefs.getInt(KEY_ADJUST, 2).coerceIn(-MAX_ADJUST, MAX_ADJUST)
+        set(v) = prefs.edit { putInt(KEY_ADJUST, v.coerceIn(-MAX_ADJUST, MAX_ADJUST)) }
 
     /** Length of the countdown after adzan, in minutes. */
     var countdownMinutes: Int
-        get() = prefs.getInt(KEY_DURATION, 15)
+        get() = prefs.getInt(KEY_DURATION, 15).coerceIn(1, 60)
         set(v) = prefs.edit { putInt(KEY_DURATION, v.coerceIn(1, 60)) }
 
     fun isEnabled(prayer: Prayer): Boolean = prefs.getBoolean("enabled_${prayer.key}", true)
@@ -54,6 +63,7 @@ class Settings(context: Context) {
     fun calculator() = PrayerTimeCalculator(latitude, longitude, method, madhab, adjustMinutes)
 
     companion object {
+        private const val MAX_ADJUST = 30
         private const val KEY_SOURCE = "source"
         private const val KEY_CITY_ID = "city_id"
         private const val KEY_CITY_NAME = "city_name"

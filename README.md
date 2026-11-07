@@ -79,3 +79,25 @@ Requires the Android SDK (platform 36) and JDK 17+.
 
 On Samsung, also consider setting the app's battery usage to **Unrestricted**
 (Settings → Apps → Adzan Countdown → Battery) so alarms aren't delayed.
+
+## Security & privacy
+
+- **No accounts, no tracking, no server of our own.** The only network call is HTTPS to
+  `api.myquran.com` for the public prayer schedule. The request carries only the city ID,
+  never your location.
+- **Location stays on the phone.** Coarse location is used only when you tap "Use current location".
+  It's stored in app-private storage and excluded from cloud backup and device-to-device transfer.
+- **Network:** HTTPS only (cleartext blocked by `network_security_config.xml`). Only system CAs are
+  trusted (user-installed CAs can't intercept), redirects aren't followed, and responses are capped at 512 KB.
+- **Untrusted API data is validated:** city IDs must be digits (they're used in file names and
+  URLs, so no path traversal), names are length-limited with control characters stripped, a month must
+  match the requested city and month and be complete, and prayer times must be in order. Cache
+  writes are atomic.
+- **Components:** only the launcher activity and the boot/time-change receiver are exported. The
+  receiver only reacts to system-only broadcast actions and only re-arms the alarm. The countdown
+  service and alarm receiver aren't exported, and every `PendingIntent` is explicit and immutable.
+- **Build:** release builds use R8 shrinking and aren't debuggable. The Gradle distribution is
+  pinned by SHA-256 (`distributionSha256Sum`), and `gradle-wrapper.jar` matches Gradle's
+  published checksum.
+- **Before publishing:** sign release builds with your own keystore and keep that keystore
+  (and its passwords) out of git.
