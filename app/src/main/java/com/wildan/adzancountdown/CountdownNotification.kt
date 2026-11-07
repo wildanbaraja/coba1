@@ -44,6 +44,8 @@ object CountdownNotification {
             setSound(null, null)
             enableVibration(false)
             setShowBadge(false)
+            // Samsung's Now Bar needs the content to be allowed on the lock screen.
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         val iqamah = NotificationChannel(
             CHANNEL_IQAMAH,
