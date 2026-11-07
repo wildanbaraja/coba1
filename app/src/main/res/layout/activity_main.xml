@@ -43,79 +43,132 @@
             <Button android:id="@+id/permLiveButton" style="@style/PermButton" />
         </LinearLayout>
 
-        <!-- Location -->
+        <!-- Source of prayer times -->
         <TextView
             style="@style/SectionHeader"
-            android:text="@string/section_location" />
+            android:text="@string/section_source" />
 
+        <RadioGroup
+            android:id="@+id/sourceGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <RadioButton
+                android:id="@+id/sourceCity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/source_city" />
+
+            <RadioButton
+                android:id="@+id/sourceCoords"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/source_coords" />
+        </RadioGroup>
+
+        <!-- City mode -->
         <LinearLayout
+            android:id="@+id/cityGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
+            <TextView style="@style/FieldLabel" android:text="@string/city" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:hint="@string/latitude">
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/latitude"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/cityName"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:inputType="numberSigned|numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_weight="1"
+                    android:textAppearance="?attr/textAppearanceTitleMedium" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
+                <Button
+                    android:id="@+id/chooseCity"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/choose_city" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/cityStatus"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="@string/longitude">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/longitude"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="numberSigned|numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
+                android:textAppearance="?attr/textAppearanceBodySmall" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/useLocation"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/use_current_location" />
-
-        <!-- Calculation -->
-        <TextView
-            style="@style/SectionHeader"
-            android:text="@string/section_calc" />
-
-        <TextView style="@style/FieldLabel" android:text="@string/method" />
-        <Spinner
-            android:id="@+id/method"
-            android:layout_width="match_parent"
-            android:layout_height="48dp" />
-
-        <TextView style="@style/FieldLabel" android:text="@string/asr" />
-        <Spinner
-            android:id="@+id/madhab"
-            android:layout_width="match_parent"
-            android:layout_height="48dp" />
-
+        <!-- Coordinates mode -->
         <LinearLayout
+            android:id="@+id/coordsGroup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:hint="@string/latitude">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/latitude"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberSigned|numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/longitude">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/longitude"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="numberSigned|numberDecimal" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/useLocation"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/use_current_location" />
+
+            <TextView style="@style/FieldLabel" android:text="@string/method" />
+            <Spinner
+                android:id="@+id/method"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <TextView style="@style/FieldLabel" android:text="@string/asr" />
+            <Spinner
+                android:id="@+id/madhab"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
+                android:layout_marginTop="8dp"
                 android:hint="@string/adjust_minutes">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -124,20 +177,24 @@
                     android:layout_height="wrap_content"
                     android:inputType="numberSigned" />
             </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="@string/countdown_minutes">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/duration"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="number" />
-            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
+
+        <!-- Countdown -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_countdown" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/countdown_minutes">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/duration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Prayers -->
         <TextView

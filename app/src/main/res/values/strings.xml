@@ -14,9 +14,22 @@
     <string name="iqamah_text">It\'s time for iqamah. Straighten the rows.</string>
 
     <string name="section_status">Permissions</string>
-    <string name="section_location">Location</string>
-    <string name="section_calc">Calculation</string>
+    <string name="section_source">Prayer times</string>
+    <string name="section_countdown">Countdown</string>
     <string name="section_prayers">Countdown after adzan for</string>
+    <string name="source_city">City — official Kemenag RI schedule (Indonesia)</string>
+    <string name="source_coords">Coordinates — calculated on the phone (any country)</string>
+    <string name="city">City / regency</string>
+    <string name="choose_city">Choose city</string>
+    <string name="search_city">Search, e.g. Bandung</string>
+    <string name="loading_cities">Loading cities…</string>
+    <string name="cities_failed">Could not load the city list. Check your internet connection and try again.</string>
+    <string name="no_city_match">No city matches \"%1$s\"</string>
+    <string name="city_downloading">Downloading schedule…</string>
+    <string name="city_ready">Kemenag schedule downloaded · stored on the phone</string>
+    <string name="city_not_downloaded">Schedule not downloaded yet (needs internet). Calculated times are used meanwhile.</string>
+    <string name="today_source_official">Source: Kemenag RI, %1$s</string>
+    <string name="today_source_calc">Source: calculated (%1$s)</string>
     <string name="section_today">Today\'s adzan times</string>
 
     <string name="latitude">Latitude</string>

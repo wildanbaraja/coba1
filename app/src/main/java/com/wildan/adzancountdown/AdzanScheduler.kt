@@ -20,11 +20,10 @@ object AdzanScheduler {
 
     fun findNext(context: Context, after: Instant = Instant.now()): NextAdzan? {
         val settings = Settings(context)
-        val calc = settings.calculator()
         val today = LocalDate.now(ZoneId.systemDefault())
         // Look a couple of days ahead in case all of today's prayers have passed.
         for (offset in -1L..2L) {
-            val times = calc.timesFor(today.plusDays(offset))
+            val times = PrayerSchedule.timesFor(context, today.plusDays(offset)).times
             times.entries
                 .filter { settings.isEnabled(it.key) && it.value.isAfter(after) }
                 .minByOrNull { it.value }
@@ -53,6 +52,22 @@ object AdzanScheduler {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, operation)
         }
         return next
+    }
+
+    /**
+     * For broadcast receivers: download missing schedule months (if any) off the main
+     * thread, then re-arm the alarm.
+     */
+    fun refreshAndScheduleAsync(context: Context, pending: android.content.BroadcastReceiver.PendingResult) {
+        val app = context.applicationContext
+        Thread {
+            try {
+                runCatching { PrayerSchedule.refresh(app) }
+                scheduleNext(app)
+            } finally {
+                pending.finish()
+            }
+        }.start()
     }
 
     private fun pendingIntent(context: Context, prayer: Prayer?): PendingIntent {

@@ -12,7 +12,9 @@ class AdzanAlarmReceiver : BroadcastReceiver() {
             ?: return
         val minutes = Settings(context).countdownMinutes
         CountdownService.start(context, prayer, System.currentTimeMillis() + minutes * 60_000L, minutes)
+        // Arm the next alarm right away from cache, then top up the schedule download.
         AdzanScheduler.scheduleNext(context)
+        AdzanScheduler.refreshAndScheduleAsync(context, goAsync())
     }
 
     companion object {

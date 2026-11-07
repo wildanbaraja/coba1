@@ -9,16 +9,24 @@ import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.widget.ListView
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.provider.Settings as AndroidSettings
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import android.os.CancellationSignal
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.wildan.adzancountdown.databinding.ActivityMainBinding
 import java.time.Instant
 import java.time.LocalDate
@@ -26,12 +34,18 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var settings: Settings
     private val prayerChecks = mutableMapOf<Prayer, CheckBox>()
     private val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+    private val io = Executors.newSingleThreadExecutor()
+    private lateinit var repo: KemenagRepository
+
+    /** City currently selected in the form; persisted on Save. */
+    private lateinit var pendingCity: City
 
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshPermissions() }
@@ -46,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         settings = Settings(this)
+        repo = KemenagRepository(this)
         CountdownNotification.createChannels(this)
 
         binding.method.adapter = spinnerAdapter(CalcMethod.entries.map { it.label })
@@ -57,6 +72,8 @@ class MainActivity : AppCompatActivity() {
         }
         loadForm()
 
+        binding.sourceGroup.setOnCheckedChangeListener { _, _ -> updateSourceVisibility() }
+        binding.chooseCity.setOnClickListener { showCityPicker() }
         binding.useLocation.setOnClickListener { requestLocation() }
         binding.save.setOnClickListener { save() }
         binding.testNow.setOnClickListener {
@@ -76,9 +93,41 @@ class MainActivity : AppCompatActivity() {
         // Permissions may have changed in Settings; make sure the alarm is armed.
         AdzanScheduler.scheduleNext(this)
         refreshTimes()
+        // Top up the Kemenag download (e.g. next month) and re-arm with official times.
+        refreshScheduleInBackground()
+    }
+
+    override fun onDestroy() {
+        io.shutdownNow()
+        super.onDestroy()
+    }
+
+    private fun refreshScheduleInBackground(onDone: (() -> Unit)? = null) {
+        val app = applicationContext
+        io.execute {
+            runCatching { PrayerSchedule.refresh(app) }
+            AdzanScheduler.scheduleNext(app)
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                refreshTimes()
+                onDone?.invoke()
+            }
+        }
+    }
+
+    private fun updateSourceVisibility() {
+        val city = binding.sourceCity.isChecked
+        binding.cityGroup.visibility = if (city) View.VISIBLE else View.GONE
+        binding.coordsGroup.visibility = if (city) View.GONE else View.VISIBLE
     }
 
     private fun loadForm() {
+        binding.sourceGroup.check(
+            if (settings.source == TimeSource.CITY) R.id.sourceCity else R.id.sourceCoords,
+        )
+        pendingCity = City(settings.cityId, settings.cityName)
+        binding.cityName.text = pendingCity.name
+        updateSourceVisibility()
         binding.latitude.setText(fmtCoord(settings.latitude))
         binding.longitude.setText(fmtCoord(settings.longitude))
         binding.method.setSelection(settings.method.ordinal)
@@ -89,14 +138,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun save() {
+        val cityMode = binding.sourceCity.isChecked
         val lat = binding.latitude.text?.toString()?.trim()?.replace(',', '.')?.toDoubleOrNull()
         val lng = binding.longitude.text?.toString()?.trim()?.replace(',', '.')?.toDoubleOrNull()
-        if (lat == null || lng == null || lat !in -90.0..90.0 || lng !in -180.0..180.0) {
+        val coordsValid = lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0
+        if (!cityMode && !coordsValid) {
             toast(getString(R.string.invalid_location))
             return
         }
-        settings.latitude = lat
-        settings.longitude = lng
+        if (coordsValid) {
+            settings.latitude = lat!!
+            settings.longitude = lng!!
+        }
+        settings.source = if (cityMode) TimeSource.CITY else TimeSource.COORDINATES
+        settings.cityId = pendingCity.id
+        settings.cityName = pendingCity.name
         settings.method = CalcMethod.entries[binding.method.selectedItemPosition]
         settings.madhab = AsrMadhab.entries[binding.madhab.selectedItemPosition]
         settings.adjustMinutes = binding.adjust.text?.toString()?.toIntOrNull() ?: 0
@@ -104,22 +160,32 @@ class MainActivity : AppCompatActivity() {
         binding.duration.setText(settings.countdownMinutes.toString())
         prayerChecks.forEach { (p, cb) -> settings.setEnabled(p, cb.isChecked) }
 
-        val next = AdzanScheduler.scheduleNext(this)
-        toast(
-            next?.let { getString(R.string.saved, it.prayer.displayName, fmtTime(it.time)) }
-                ?: getString(R.string.no_next),
-        )
+        AdzanScheduler.scheduleNext(this)
         refreshTimes()
+        // Make sure the chosen city's schedule is downloaded, then confirm with the final time.
+        refreshScheduleInBackground {
+            val next = AdzanScheduler.findNext(this)
+            toast(
+                next?.let { getString(R.string.saved, it.prayer.displayName, fmtTime(it.time)) }
+                    ?: getString(R.string.no_next),
+            )
+        }
     }
 
     private fun refreshTimes() {
         val today = LocalDate.now(ZoneId.systemDefault())
-        val times = settings.calculator().timesFor(today)
+        val day = PrayerSchedule.timesFor(this, today)
+        val sourceLine = if (day.official) {
+            getString(R.string.today_source_official, settings.cityName)
+        } else {
+            getString(R.string.today_source_calc, settings.method.label)
+        }
         binding.todayTimes.text = Prayer.entries.joinToString("\n") { p ->
-            val t = times[p]?.let(::fmtTime) ?: "--:--"
+            val t = day.times[p]?.let(::fmtTime) ?: "--:--"
             val mark = if (settings.isEnabled(p)) "●" else "○"
             "$mark ${p.displayName.padEnd(8)} $t"
-        }
+        } + "\n\n" + sourceLine
+        updateCityStatus()
         val next = AdzanScheduler.findNext(this)
         binding.nextAdzan.text = next?.let {
             getString(R.string.next_adzan, it.prayer.displayName, fmtTime(it.time))
@@ -167,6 +233,85 @@ class MainActivity : AppCompatActivity() {
         button.isEnabled = !ok
         button.setTextColor(ContextCompat.getColor(this, if (ok) R.color.ok else R.color.warn))
         button.setOnClickListener { runCatching(fix) }
+    }
+
+    private fun updateCityStatus() {
+        val downloaded = repo.timesFor(pendingCity.id, LocalDate.now()) != null
+        binding.cityStatus.setText(if (downloaded) R.string.city_ready else R.string.city_not_downloaded)
+    }
+
+    private fun showCityPicker() {
+        val view = layoutInflater.inflate(R.layout.dialog_city_picker, null)
+        val search = view.findViewById<TextView>(R.id.search)
+        val loading = view.findViewById<ProgressBar>(R.id.loading)
+        val message = view.findViewById<TextView>(R.id.message)
+        val list = view.findViewById<ListView>(R.id.list)
+
+        var all: List<City> = emptyList()
+        var shown: List<City> = emptyList()
+        val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mutableListOf())
+        list.adapter = adapter
+
+        fun applyFilter() {
+            val q = search.text?.toString()?.trim().orEmpty()
+            // Match every word, so "kota bandung" and "bandung kota" both work.
+            val words = q.uppercase().split(' ').filter { it.isNotEmpty() }
+            shown = all.filter { c -> words.all { c.name.contains(it) } }
+            adapter.clear()
+            adapter.addAll(shown.map { it.name })
+            message.visibility = if (all.isNotEmpty() && shown.isEmpty()) View.VISIBLE else View.GONE
+            if (shown.isEmpty() && all.isNotEmpty()) message.text = getString(R.string.no_city_match, q)
+        }
+
+        fun showCities(cities: List<City>) {
+            all = cities
+            loading.visibility = View.GONE
+            applyFilter()
+        }
+
+        val dialog: AlertDialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.choose_city)
+            .setView(view)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) = applyFilter()
+        })
+        list.setOnItemClickListener { _, _, position, _ ->
+            val city = shown[position]
+            pendingCity = city
+            binding.cityName.text = city.name
+            binding.sourceCity.isChecked = true
+            binding.cityStatus.setText(R.string.city_downloading)
+            dialog.dismiss()
+            // Pre-download now so Save is instant; the selection itself is stored on Save.
+            val app = applicationContext
+            io.execute {
+                runCatching { KemenagRepository(app).ensureCached(city.id) }
+                runOnUiThread { if (!isDestroyed) updateCityStatus() }
+            }
+        }
+
+        val cached = repo.cachedCities()
+        if (cached != null) {
+            showCities(cached)
+        } else {
+            io.execute {
+                val result = runCatching { repo.fetchCities() }
+                runOnUiThread {
+                    if (isDestroyed) return@runOnUiThread
+                    result.onSuccess(::showCities).onFailure {
+                        loading.visibility = View.GONE
+                        message.visibility = View.VISIBLE
+                        message.setText(R.string.cities_failed)
+                    }
+                }
+            }
+        }
+        dialog.show()
     }
 
     private fun requestLocation() {

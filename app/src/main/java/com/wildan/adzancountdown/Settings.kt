@@ -3,11 +3,24 @@ package com.wildan.adzancountdown
 import android.content.Context
 import androidx.core.content.edit
 
+enum class TimeSource { CITY, COORDINATES }
+
 /** Thin wrapper around SharedPreferences for the user's configuration. */
 class Settings(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("adzan_settings", Context.MODE_PRIVATE)
 
-    val hasLocation: Boolean get() = prefs.contains(KEY_LAT) && prefs.contains(KEY_LNG)
+    var source: TimeSource
+        get() = runCatching { TimeSource.valueOf(prefs.getString(KEY_SOURCE, null)!!) }.getOrDefault(TimeSource.CITY)
+        set(v) = prefs.edit { putString(KEY_SOURCE, v.name) }
+
+    /** myQuran / Kemenag city id, e.g. "1301" for Kota Jakarta. */
+    var cityId: String
+        get() = prefs.getString(KEY_CITY_ID, null) ?: DEFAULT_CITY_ID
+        set(v) = prefs.edit { putString(KEY_CITY_ID, v) }
+
+    var cityName: String
+        get() = prefs.getString(KEY_CITY_NAME, null) ?: DEFAULT_CITY_NAME
+        set(v) = prefs.edit { putString(KEY_CITY_NAME, v) }
 
     var latitude: Double
         get() = prefs.getString(KEY_LAT, null)?.toDoubleOrNull() ?: DEFAULT_LAT
@@ -41,12 +54,18 @@ class Settings(context: Context) {
     fun calculator() = PrayerTimeCalculator(latitude, longitude, method, madhab, adjustMinutes)
 
     companion object {
+        private const val KEY_SOURCE = "source"
+        private const val KEY_CITY_ID = "city_id"
+        private const val KEY_CITY_NAME = "city_name"
         private const val KEY_LAT = "lat"
         private const val KEY_LNG = "lng"
         private const val KEY_METHOD = "method"
         private const val KEY_MADHAB = "madhab"
         private const val KEY_ADJUST = "adjust"
         private const val KEY_DURATION = "duration"
+
+        const val DEFAULT_CITY_ID = "1301"
+        const val DEFAULT_CITY_NAME = "KOTA JAKARTA"
 
         // Jakarta, used until the user sets a location.
         const val DEFAULT_LAT = -6.2088

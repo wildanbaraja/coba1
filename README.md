@@ -5,10 +5,34 @@ the adzan time arrives. On Samsung One UI 8 / One UI 9 (Android 16+), the
 countdown shows up as a **Live Update**: a ticking chip in the status bar, on
 the lock screen / AOD, and in the **Now Bar**.
 
+## Prayer times: choose your city
+
+The app has two sources, chosen on the main screen:
+
+1. **City — official Kemenag RI schedule (default).** Pick your kabupaten/kota
+   (all 518 in Indonesia) from a searchable list. The schedule comes from the
+   public **myQuran API**, which republishes Kemenag's official times:
+   - `GET https://api.myquran.com/v2/sholat/kota/semua`: list of cities
+   - `GET https://api.myquran.com/v2/sholat/jadwal/{cityId}/{yyyy}/{mm}`: one month of times
+
+   The current and next month are stored on the phone, so the countdown works
+   offline. The app tops up the download whenever it opens, at each adzan and
+   after a reboot. Times are converted using the city's own zone (WIB/WITA/WIT),
+   so they're correct even if the phone's clock zone differs.
+2. **Coordinates — calculated on the phone.** For use outside Indonesia (or
+   with no internet). Uses GPS or typed coordinates and a calculation method
+   (Kemenag, MWL, ISNA, JAKIM, MUIS, Egypt, Karachi, Umm al-Qura).
+
+If the city schedule hasn't been downloaded yet, the app falls back to the
+calculated times, so you still get a countdown. The "Today" list shows which
+source is in use.
+
 ## How it works
 
 | Piece | File |
 |---|---|
+| City list + Kemenag schedule download/cache (myQuran API) | `KemenagRepository.kt` |
+| Picks city schedule or calculation | `PrayerSchedule.kt` |
 | Prayer-time calculation (offline, astronomical; Kemenag, MWL, ISNA, JAKIM, …) | `PrayerTimes.kt` |
 | Arms an exact alarm for the next enabled adzan | `AdzanScheduler.kt` |
 | Alarm fires → starts the countdown, arms the next alarm | `AdzanAlarmReceiver.kt` |
@@ -39,7 +63,7 @@ Requires the Android SDK (platform 36) and JDK 17+.
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest    # prayer-time tests (checked against Kemenag's schedule for Jakarta)
+./gradlew testDebugUnitTest    # calculation checked against Kemenag's Jakarta schedule; API parsing + WIB/WITA/WIT tests
 ```
 
 ## First run on the phone
@@ -48,8 +72,9 @@ Requires the Android SDK (platform 36) and JDK 17+.
 2. Allow **Alarms & reminders** (exact alarms). Without this the countdown may start late
    and the progress bar won't update.
 3. On Android 16+, make sure **Live Updates** is on (the app shows a button that opens it).
-4. Tap **Use current location** (or type the coordinates), choose a method
-   (default: Kemenag RI, +2 min ihtiyat), then **Save & schedule**.
+4. Under **Prayer times**, keep **City** selected, tap **Choose city**, search
+   (e.g. "bandung") and pick your kota/kabupaten. Then tap **Save & schedule**.
+   (Outside Indonesia: choose **Coordinates** and use your location instead.)
 5. Tap **Test countdown now (1 min)** to see the status bar chip / Now Bar right away.
 
 On Samsung, also consider setting the app's battery usage to **Unrestricted**
