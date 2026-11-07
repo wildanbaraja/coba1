@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+
+        <TextView
+            android:id="@+id/nextAdzan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="@color/accent" />
+
+        <!-- Permissions -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_status" />
+
+        <LinearLayout style="@style/PermRow">
+            <TextView android:id="@+id/permNotifLabel" style="@style/PermLabel" android:text="@string/perm_notifications" />
+            <Button android:id="@+id/permNotifButton" style="@style/PermButton" />
+        </LinearLayout>
+        <LinearLayout style="@style/PermRow">
+            <TextView android:id="@+id/permAlarmLabel" style="@style/PermLabel" android:text="@string/perm_exact_alarm" />
+            <Button android:id="@+id/permAlarmButton" style="@style/PermButton" />
+        </LinearLayout>
+        <LinearLayout style="@style/PermRow">
+            <TextView android:id="@+id/permLiveLabel" style="@style/PermLabel" android:text="@string/perm_live_updates" />
+            <Button android:id="@+id/permLiveButton" style="@style/PermButton" />
+        </LinearLayout>
+
+        <!-- Location -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_location" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:hint="@string/latitude">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/latitude"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberSigned|numberDecimal" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/longitude">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/longitude"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberSigned|numberDecimal" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/useLocation"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/use_current_location" />
+
+        <!-- Calculation -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_calc" />
+
+        <TextView style="@style/FieldLabel" android:text="@string/method" />
+        <Spinner
+            android:id="@+id/method"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+
+        <TextView style="@style/FieldLabel" android:text="@string/asr" />
+        <Spinner
+            android:id="@+id/madhab"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:hint="@string/adjust_minutes">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/adjust"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberSigned" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/countdown_minutes">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/duration"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <!-- Prayers -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_prayers" />
+
+        <LinearLayout
+            android:id="@+id/prayerChecks"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <Button
+            android:id="@+id/save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/save" />
+
+        <Button
+            android:id="@+id/testNow"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/test_now" />
+
+        <!-- Today -->
+        <TextView
+            style="@style/SectionHeader"
+            android:text="@string/section_today" />
+
+        <TextView
+            android:id="@+id/todayTimes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:lineSpacingExtra="4dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
+    </LinearLayout>
+</ScrollView>

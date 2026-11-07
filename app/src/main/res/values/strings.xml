@@ -1,0 +1,43 @@
+<resources>
+    <string name="app_name">Adzan Countdown</string>
+
+    <string name="channel_countdown">Iqamah countdown</string>
+    <string name="channel_countdown_desc">Live countdown from adzan to iqamah, shown in the status bar and Now Bar</string>
+    <string name="channel_iqamah">Iqamah alert</string>
+    <string name="channel_iqamah_desc">Alert when the countdown reaches iqamah</string>
+
+    <string name="notif_title">Iqamah %1$s</string>
+    <string name="notif_text">Adzan %1$s · iqamah at %2$s</string>
+    <string name="notif_subtext">%1$d min left</string>
+    <string name="action_stop">Stop</string>
+    <string name="iqamah_title">Iqamah %1$s</string>
+    <string name="iqamah_text">It\'s time for iqamah. Straighten the rows.</string>
+
+    <string name="section_status">Permissions</string>
+    <string name="section_location">Location</string>
+    <string name="section_calc">Calculation</string>
+    <string name="section_prayers">Countdown after adzan for</string>
+    <string name="section_today">Today\'s adzan times</string>
+
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+    <string name="use_current_location">Use current location</string>
+    <string name="method">Method</string>
+    <string name="asr">Asr</string>
+    <string name="adjust_minutes">Adjustment (min)</string>
+    <string name="countdown_minutes">Countdown (min)</string>
+    <string name="save">Save &amp; schedule</string>
+    <string name="test_now">Test countdown now (1 min)</string>
+    <string name="saved">Saved. Next: %1$s at %2$s</string>
+    <string name="no_next">No upcoming adzan (all prayers disabled?)</string>
+    <string name="next_adzan">Next adzan: %1$s at %2$s</string>
+    <string name="invalid_location">Enter a valid latitude (−90…90) and longitude (−180…180)</string>
+    <string name="location_failed">Could not get location. Enter it manually.</string>
+
+    <string name="perm_notifications">Notifications</string>
+    <string name="perm_exact_alarm">Exact alarms (start on time)</string>
+    <string name="perm_live_updates">Live Updates (status bar chip / Now Bar)</string>
+    <string name="perm_live_updates_na">Live Updates need Android 16 (One UI 8+). A normal notification is used.</string>
+    <string name="perm_ok">✓ Allowed</string>
+    <string name="perm_fix">Allow</string>
+</resources>
