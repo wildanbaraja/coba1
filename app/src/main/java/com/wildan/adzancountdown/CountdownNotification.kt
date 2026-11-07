@@ -65,7 +65,8 @@ object CountdownNotification {
         val totalSeconds = totalMinutes * 60
         val remainingMs = (endAtMillis - nowMillis).coerceAtLeast(0)
         val elapsedSeconds = (totalSeconds - (remainingMs / 1000).toInt()).coerceIn(0, totalSeconds)
-        val remainingMinutes = ((remainingMs + 59_999) / 60_000).toInt()
+        val remainingSecondsCeil = (remainingMs + 999) / 1000
+        val remainingText = "%d:%02d".format(remainingSecondsCeil / 60, remainingSecondsCeil % 60)
         val timeFmt = DateFormat.getTimeInstance(DateFormat.SHORT)
         val adzanAt = timeFmt.format(Date(endAtMillis - totalSeconds * 1000L))
         val iqamahAt = timeFmt.format(Date(endAtMillis))
@@ -81,8 +82,10 @@ object CountdownNotification {
         return NotificationCompat.Builder(context, CHANNEL_COUNTDOWN)
             .setSmallIcon(R.drawable.ic_stat_mosque)
             .setContentTitle(context.getString(R.string.notif_title, prayer.displayName))
-            .setContentText(context.getString(R.string.notif_text, adzanAt, iqamahAt))
-            .setSubText(context.getString(R.string.notif_subtext, remainingMinutes))
+            // Samsung's Now Bar pill shows title + text but not the chronometer, so the remaining
+            // time goes first in the text (CountdownService refreshes it every second).
+            .setContentText(context.getString(R.string.notif_text, remainingText, iqamahAt))
+            .setSubText(context.getString(R.string.notif_subtext, adzanAt))
             .setStyle(progressStyle)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

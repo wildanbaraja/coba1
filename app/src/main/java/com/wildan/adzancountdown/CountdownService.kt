@@ -15,8 +15,10 @@ import androidx.core.content.ContextCompat
 
 /**
  * Foreground service that lives for the duration of the countdown. The seconds in the
- * chronometer / status bar chip are ticked by System UI; this service only refreshes
- * the progress bar periodically and posts the "iqamah" alert at the end.
+ * chronometer / status bar chip are ticked by System UI. This service refreshes the
+ * notification once per second so the remaining time in the text (shown by Samsung's
+ * Now Bar, which doesn't render the chronometer) and the progress bar stay current,
+ * and it posts the "iqamah" alert at the end.
  */
 class CountdownService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -38,7 +40,7 @@ class CountdownService : Service() {
                 CountdownNotification.NOTIFICATION_ID,
                 CountdownNotification.build(this@CountdownService, p, endAt, totalMinutes, now),
             )
-            handler.postDelayed(this, minOf(UPDATE_INTERVAL_MS, endAt - now))
+            handler.postDelayed(this, delayToNextSecond(endAt - now))
         }
     }
 
@@ -72,7 +74,7 @@ class CountdownService : Service() {
             },
         )
         handler.removeCallbacks(tick)
-        handler.postDelayed(tick, minOf(UPDATE_INTERVAL_MS, endAt - System.currentTimeMillis()))
+        handler.postDelayed(tick, delayToNextSecond(endAt - System.currentTimeMillis()))
         return START_NOT_STICKY
     }
 
@@ -94,7 +96,14 @@ class CountdownService : Service() {
         private const val EXTRA_PRAYER = "prayer"
         private const val EXTRA_END_AT = "end_at"
         private const val EXTRA_TOTAL_MINUTES = "total_minutes"
-        private const val UPDATE_INTERVAL_MS = 15_000L
+
+        /**
+         * Updates land just after the displayed second changes, so the text stays in step with
+         * the status bar chip. One update per second is well under Android's notification
+         * rate limit, and the service only runs for the length of the countdown.
+         */
+        private fun delayToNextSecond(remainingMs: Long): Long =
+            if (remainingMs <= 0) 0 else (remainingMs % 1000) + 10
         private const val TAG = "CountdownService"
 
         fun start(context: Context, prayer: Prayer, endAtMillis: Long, totalMinutes: Int) {

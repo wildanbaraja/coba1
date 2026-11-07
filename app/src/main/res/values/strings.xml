@@ -7,8 +7,8 @@
     <string name="channel_iqamah_desc">Alert when the countdown reaches iqamah</string>
 
     <string name="notif_title">Iqamah %1$s</string>
-    <string name="notif_text">Adzan %1$s · iqamah at %2$s</string>
-    <string name="notif_subtext">%1$d min left</string>
+    <string name="notif_text">%1$s left · iqamah %2$s</string>
+    <string name="notif_subtext">Adzan %1$s</string>
     <string name="action_stop">Stop</string>
     <string name="iqamah_title">Iqamah %1$s</string>
     <string name="iqamah_text">It\'s time for iqamah. Straighten the rows.</string>
