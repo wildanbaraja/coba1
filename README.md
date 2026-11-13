@@ -8,7 +8,7 @@ Built with Kotlin + Jetpack Compose. Min Android 11, targets Android 15 (One UI 
 
 ## What it does
 
-<img src="docs/island-states.png" width="360" alt="Rendered island states">
+<img src="docs/island-states.png" width="300" alt="Rendered island states"> <img src="docs/island-motion.png" width="460" alt="Expand, collapse and split animations, frame by frame">
 
 
 | State | Looks like | Gestures |
@@ -34,6 +34,23 @@ Live activities are picked up automatically from notifications:
 
 Priority for the main pill: call › navigation › timer › media › progress › live update.
 
+## Motion & design
+
+- **Direction-aware springs.** Expanding uses a slightly softer, bouncier spring for the
+  height than the width, so the island widens and then *drops* open with a gentle overshoot;
+  collapsing uses tighter, near-critically-damped springs so it snaps back crisply.
+  Springs keep their velocity when interrupted, so rapid state changes stay fluid.
+- **Blur-morph content.** Each state's content fades in from a blur while scaling up from
+  under the camera (Android 12+), and expanded layouts stagger in item by item.
+- **Compact content glides out from the camera** to its left/right slots.
+- **Gooey split.** A second activity buds off the pill as a liquid "metaball" bubble, stretches,
+  snaps free and settles with a bounce; it melts back in when it ends.
+- **Touch physics.** Pressing inflates the island slightly; dragging it rubber-bands; tapping
+  the idle pill makes it wobble; buttons shrink under your finger.
+- **Continuous ("squircle") corners** like Apple's, Inter typography with tabular digits,
+  an organic noise-driven waveform tinted from the album art, and an iOS-style battery glyph.
+- The settings screen opens with a **live preview phone** that loops through every state.
+
 ## Build
 
 ```bash
@@ -41,7 +58,7 @@ Priority for the main pill: call › navigation › timer › media › progress
 ./gradlew assembleRelease      # minified, ~small; signed with the debug key for sideloading
 ```
 
-To re-render every island state into `app/build/island-states.png` (no device needed):
+To re-render every island state and the animation filmstrips into `app/build/` (no device needed):
 `./gradlew testDebugUnitTest`.
 
 Or push to GitHub — the **Build APK** workflow uploads both APKs as an artifact.
@@ -93,4 +110,5 @@ AccessibilityService ── charging receiver ──┘                     wind
   apps restrict background launches, in which case nothing happens on tap.
 - Google Play restricts accessibility-service use; this project is intended for personal
   sideloading.
+- Bundles the [Inter](https://github.com/rsms/inter) typeface (SIL Open Font License, see `third_party/`).
 - "Dynamic Island" is an Apple trademark; this is an independent look-alike, not affiliated with Apple.

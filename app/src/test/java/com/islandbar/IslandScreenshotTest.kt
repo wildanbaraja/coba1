@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -77,7 +80,7 @@ class IslandScreenshotTest {
         actions = listOf(IslandAction("Pause", null), IslandAction("Cancel", null)),
     )
     private val call = LiveActivity(
-        "call", ActivityType.CALL, "p", "Alex", "Incoming call", appIcon = icon, chronometerBase = now,
+        "call", ActivityType.CALL, "p", "Alex Morgan", "mobile", appIcon = icon, chronometerBase = now,
         actions = listOf(IslandAction("Decline", null, ActionKind.DECLINE), IslandAction("Answer", null, ActionKind.ACCEPT)),
     )
     private val download = LiveActivity("dl", ActivityType.PROGRESS, "p", "Downloading", "photos.zip", appIcon = icon, progress = 0.62f)
@@ -111,9 +114,9 @@ class IslandScreenshotTest {
                 Frame("Charging", 60) {
                     Island(geo, cfg, emptyList(), TransientEvent(TransientKind.CHARGING, batteryLevel = 78), emptyFlow(), noop)
                 }
-                Frame("Expanded – music", 250) { Island(geo, cfg, listOf(music), null, emptyFlow(), noop, initialExpandedKey = "music") }
-                Frame("Expanded – incoming call", 140) { Island(geo, cfg, listOf(call), null, emptyFlow(), noop, initialExpandedKey = "call") }
-                Frame("Expanded – timer", 190) { Island(geo, cfg, listOf(timer), null, emptyFlow(), noop, initialExpandedKey = "timer") }
+                Frame("Expanded – music", 230) { Island(geo, cfg, listOf(music), null, emptyFlow(), noop, requestedExpandedKey = "music") }
+                Frame("Expanded – incoming call", 140) { Island(geo, cfg, listOf(call), null, emptyFlow(), noop, requestedExpandedKey = "call") }
+                Frame("Expanded – timer", 150) { Island(geo, cfg, listOf(timer), null, emptyFlow(), noop, requestedExpandedKey = "timer") }
                 Frame("Alert", 140) {
                     Island(
                         geo, cfg, emptyList(),
@@ -130,6 +133,65 @@ class IslandScreenshotTest {
         val out = File(System.getProperty("user.dir"), "build/island-states.png")
         out.parentFile?.mkdirs()
         out.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        println("Saved ${out.absolutePath}")
+    }
+
+    private fun grab(wDp: Int, hDp: Int): Bitmap {
+        val root = compose.activity.window.decorView
+        val full = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        compose.runOnUiThread { root.draw(Canvas(full)) }
+        val d = compose.activity.resources.displayMetrics.density
+        return Bitmap.createBitmap(full, 0, 0, (wDp * d).toInt(), (hDp * d).toInt())
+    }
+
+    /** Filmstrips of the key motions, sampled every few frames. */
+    @Test
+    fun renderMotion() {
+        compose.mainClock.autoAdvance = false
+        val cfg = IslandConfig()
+        var acts by mutableStateOf(listOf(music))
+        var exp by mutableStateOf<String?>(null)
+        compose.setContent {
+            Box(
+                Modifier.width(400.dp).height(230.dp)
+                    .background(Brush.verticalGradient(listOf(Color(0xFF3A5BA0), Color(0xFF8E5BB5))))
+            ) { Island(geo, cfg, acts, null, emptyFlow(), noop, requestedExpandedKey = exp) }
+        }
+        compose.mainClock.advanceTimeBy(1500)
+        val frames = mutableListOf<Pair<String, Bitmap>>()
+        fun run(label: String, steps: Int, dt: Long) {
+            var t = 0L
+            repeat(steps) {
+                compose.mainClock.advanceTimeBy(dt); t += dt
+                frames += "$label  ${t}ms" to grab(400, 230)
+            }
+        }
+        compose.runOnUiThread { exp = "music" }
+        run("expand", 12, 48)
+        compose.mainClock.advanceTimeBy(1200)
+        compose.runOnUiThread { exp = null }
+        run("collapse", 6, 48)
+        compose.mainClock.advanceTimeBy(1200)
+        compose.runOnUiThread { acts = listOf(timer, music) }
+        run("split", 9, 64)
+
+        val cols = 3
+        val scale = 0.5f
+        val fw = (frames[0].second.width * scale).toInt()
+        val fh = (frames[0].second.height * scale).toInt()
+        val rows = (frames.size + cols - 1) / cols
+        val sheet = Bitmap.createBitmap(fw * cols, (fh + 40) * rows, Bitmap.Config.ARGB_8888)
+        val c = Canvas(sheet)
+        c.drawColor(0xFF111111.toInt())
+        val text = Paint().apply { color = 0xFFFFFFFF.toInt(); textSize = 26f; isAntiAlias = true }
+        frames.forEachIndexed { i, (label, bmp) ->
+            val x = (i % cols) * fw
+            val y = (i / cols) * (fh + 40)
+            c.drawText(label, x + 10f, y + 30f, text)
+            c.drawBitmap(Bitmap.createScaledBitmap(bmp, fw, fh, true), x.toFloat(), y + 40f, null)
+        }
+        val out = File(System.getProperty("user.dir"), "build/island-motion.png")
+        out.outputStream().use { sheet.compress(Bitmap.CompressFormat.PNG, 100, it) }
         println("Saved ${out.absolutePath}")
     }
 }
