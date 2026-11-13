@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Island Bar</string>
-    <string name="accessibility_description">Island Bar uses this permission only to draw the animated island around the front camera, on top of other apps and the status bar. It does not read screen content or collect any data.</string>
+    <string name="accessibility_description">Island Bar uses this to draw the animated island around the front camera, on top of other apps and the status bar. To hide the island while the notification panel is open or an app is full screen, it checks only the type and position of on-screen windows. It never reads text or other content on your screen, and collects no data.</string>
 </resources>

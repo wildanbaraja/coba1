@@ -74,6 +74,14 @@ class IslandNotificationListener : NotificationListenerService() {
         val indeterminate = ex.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
         val promoted = ex.getBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, false)
         val usesChrono = ex.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false)
+        // One UI 7+ "Live notifications" (the ones shown in the lock-screen Now Bar)
+        // carry Samsung-specific extras; their presence marks a live activity.
+        val samsungLive = ex.keySet().any { it.startsWith(SAMSUNG_LIVE_PREFIX) }
+        val samsungTitle = ex.samsungText("primaryInfo")
+        val samsungText = ex.samsungText("secondaryInfo")
+        val samsungChip = ex.samsungText("chipExpandedText") ?: ex.samsungText("nowbarPrimaryInfo")
+        val samsungProgressMax = ex.getInt(SAMSUNG_LIVE_PREFIX + "progressMax", 0)
+        val isSamsungClock = sbn.packageName == SAMSUNG_CLOCK
 
         val type = when {
             (n.category == Notification.CATEGORY_CALL || isCallStyle) &&
@@ -81,8 +89,10 @@ class IslandNotificationListener : NotificationListenerService() {
             token != null -> ActivityType.MEDIA
             n.category == Notification.CATEGORY_NAVIGATION && sbn.isOngoing -> ActivityType.NAVIGATION
             usesChrono && sbn.isOngoing -> ActivityType.TIMER
+            isSamsungClock && sbn.isOngoing && (samsungLive || promoted) -> ActivityType.TIMER
             sbn.isOngoing && progressMax > 0 && !indeterminate -> ActivityType.PROGRESS
-            promoted -> ActivityType.LIVE
+            samsungLive && samsungProgressMax > 0 -> ActivityType.PROGRESS
+            promoted || (samsungLive && sbn.isOngoing) -> ActivityType.LIVE
             else -> null
         }
 
@@ -97,16 +107,20 @@ class IslandNotificationListener : NotificationListenerService() {
             key = sbn.key,
             type = type,
             packageName = sbn.packageName,
-            title = title.ifBlank { appLabel(sbn.packageName) },
-            text = text,
-            shortText = ex.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT)?.toString(),
+            title = (samsungTitle ?: title).ifBlank { appLabel(sbn.packageName) },
+            text = samsungText ?: text,
+            shortText = ex.getCharSequence(EXTRA_SHORT_CRITICAL_TEXT)?.toString() ?: samsungChip
+                ?: if (type == ActivityType.TIMER && !usesChrono) samsungTitle ?: title.takeIf { it.isNotBlank() } else null,
             appIcon = appIcon(sbn),
             largeIcon = largeIcon(n),
             accentColor = n.color,
             chronometerBase = if (usesChrono || type == ActivityType.CALL) n.`when`.takeIf { it > 0 } else null,
             countDown = ex.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN, false),
-            progress = if (progressMax > 0 && !indeterminate)
-                ex.getInt(Notification.EXTRA_PROGRESS, 0).toFloat() / progressMax else null,
+            progress = when {
+                progressMax > 0 && !indeterminate -> ex.getInt(Notification.EXTRA_PROGRESS, 0).toFloat() / progressMax
+                samsungProgressMax > 0 -> ex.getInt(SAMSUNG_LIVE_PREFIX + "progress", 0).toFloat() / samsungProgressMax
+                else -> null
+            },
             actions = if (type == ActivityType.CALL) callActions(n) else genericActions(n),
             contentIntent = n.contentIntent,
             postTime = sbn.postTime,
@@ -201,6 +215,13 @@ class IslandNotificationListener : NotificationListenerService() {
         // Android 16 (API 36) extras, referenced by value so we can compile against API 35.
         private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"
         private const val EXTRA_SHORT_CRITICAL_TEXT = "android.shortCriticalText"
+
+        // Samsung One UI live-notification extras (best effort: undocumented keys).
+        private const val SAMSUNG_LIVE_PREFIX = "android.ongoingActivityNoti."
+        private const val SAMSUNG_CLOCK = "com.sec.android.app.clockpackage"
+
+        private fun Bundle.samsungText(name: String): String? =
+            getCharSequence(SAMSUNG_LIVE_PREFIX + name)?.toString()?.takeIf { it.isNotBlank() }
 
         private val IGNORED_PACKAGES = setOf("android", "com.android.systemui")
         private val ACCEPT_WORDS = listOf("answer", "accept", "jawab", "terima")

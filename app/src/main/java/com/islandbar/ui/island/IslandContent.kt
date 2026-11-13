@@ -133,7 +133,10 @@ internal fun CompactContent(a: LiveActivity) {
         )
         ActivityType.TIMER -> CompactRow(
             left = { Box(Modifier.padding(start = 4.dp)) { Icon(Icons.Rounded.Timer, null, tint = color, modifier = Modifier.size(20.dp)) } },
-            right = { a.chronometerBase?.let { ChronoText(it, a.countDown, IslandType.compact, color) } },
+            right = {
+                if (a.chronometerBase != null) ChronoText(a.chronometerBase, a.countDown, IslandType.compact, color)
+                else a.shortText?.let { SingleLine(it, IslandType.compact, Modifier.width(76.dp), color) }
+            },
         )
         ActivityType.PROGRESS -> CompactRow(
             left = { Box(Modifier.padding(start = 2.dp)) { AppIcon(a.appIcon, 24.dp, ContinuousRoundedShape(7.dp)) } },
@@ -362,7 +365,8 @@ private fun ExpandedTimer(a: LiveActivity, cb: IslandCallbacks) {
         Spacer(Modifier.weight(1f))
         Column(horizontalAlignment = Alignment.End, modifier = Modifier.revealItem(2)) {
             if (buttons) SingleLine(a.text.ifBlank { a.title }, IslandType.subtitle, color = color, size = 13.sp)
-            a.chronometerBase?.let { ChronoText(it, a.countDown, IslandType.big, color) }
+            if (a.chronometerBase != null) ChronoText(a.chronometerBase, a.countDown, IslandType.big, color)
+            else a.shortText?.let { SingleLine(it, IslandType.big, color = color) }
         }
     }
     if (timerNeedsChips(a)) ActionChips(actions, cb, startIndex = 3)

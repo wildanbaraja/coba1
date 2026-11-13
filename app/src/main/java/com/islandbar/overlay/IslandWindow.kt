@@ -51,7 +51,10 @@ data class IslandGeometry(
  * When the island grows, the window grows first; when it shrinks, the window
  * shrinks after the animation settles.
  */
-class IslandWindow(private val context: Context) {
+class IslandWindow(
+    private val context: Context,
+    private val openNotificationShade: () -> Unit = {},
+) {
 
     private val wm = context.getSystemService(WindowManager::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -84,6 +87,7 @@ class IslandWindow(private val context: Context) {
         val callbacks = IslandCallbacks(
             onWindowChange = ::applyWindowSize,
             open = ::open,
+            openNotificationShade = openNotificationShade,
         )
         val compose = ComposeView(context).apply {
             setContent {
@@ -91,7 +95,8 @@ class IslandWindow(private val context: Context) {
                 val config by IslandSettings.config.collectAsState()
                 val activities by IslandRepository.activities.collectAsState()
                 val transient by IslandRepository.transient.collectAsState()
-                Island(geo, config, activities, transient, outsideTouches, callbacks)
+                val systemUi by IslandRepository.systemUi.collectAsState()
+                Island(geo, config, activities, transient, outsideTouches, callbacks, systemUi = systemUi)
             }
         }
         val frame = object : FrameLayout(context) {

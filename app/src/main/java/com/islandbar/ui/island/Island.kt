@@ -28,6 +28,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -58,6 +64,8 @@ import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.islandbar.data.IslandConfig
+import com.islandbar.data.IslandFont
+import com.islandbar.data.SystemUiState
 import com.islandbar.data.IslandRepository
 import com.islandbar.model.ActivityType
 import com.islandbar.model.LiveActivity
@@ -78,6 +86,8 @@ class IslandCallbacks(
     /** Requested window size in px, and whether the window should take touches. */
     val onWindowChange: (width: Int, height: Int, touchable: Boolean) -> Unit,
     val open: (PendingIntent?, String?) -> Unit,
+    /** Pulls down One UI's notification panel (the island sits where that gesture starts). */
+    val openNotificationShade: () -> Unit = {},
 )
 
 /** What the island is currently showing. */
@@ -165,9 +175,13 @@ fun Island(
     outsideTouches: Flow<Unit>,
     callbacks: IslandCallbacks,
     requestedExpandedKey: String? = null,
+    systemUi: SystemUiState = SystemUiState(),
 ) {
+    val font = if (config.font == IslandFont.IPHONE) Inter else FontFamily.Default
     MaterialTheme(colorScheme = darkColorScheme()) {
-        IslandContent(geometry, config, activities, transient, outsideTouches, callbacks, requestedExpandedKey)
+        ProvideTextStyle(TextStyle(fontFamily = font)) {
+            IslandContent(geometry, config, activities, transient, outsideTouches, callbacks, requestedExpandedKey, systemUi)
+        }
     }
 }
 
@@ -191,6 +205,7 @@ private fun IslandContent(
     outsideTouches: Flow<Unit>,
     callbacks: IslandCallbacks,
     requestedExpandedKey: String?,
+    systemUi: SystemUiState,
 ) {
     val metrics = rememberMetrics(geometry, config)
     val density = LocalDensity.current
@@ -204,7 +219,10 @@ private fun IslandContent(
     val primary = activities.firstOrNull { it.key == preferredKey } ?: activities.firstOrNull()
     val secondary = activities.firstOrNull { it.key != primary?.key }
 
-    val hide = config.hideInLandscape && geometry.isLandscape
+    // Step aside like One UI's own status bar does.
+    val hide = (config.hideInLandscape && geometry.isLandscape) ||
+        systemUi.shadeOpen ||
+        (config.hideInFullscreen && systemUi.fullscreen)
     val mode: IslandMode = when {
         hide -> IslandMode.Hidden
         transient?.kind == TransientKind.ALERT -> IslandMode.Alert(transient)
@@ -308,12 +326,37 @@ private fun IslandContent(
     val onLongPress: () -> Unit = {
         (currentMode as? IslandMode.Compact)?.let { expand(it.activity) }
     }
+    // Swiping down from the top edge is how One UI opens the notification panel,
+    // so wherever the island has nothing to expand, hand that gesture to the system.
     val onSwipe: (Float) -> Unit = { dy ->
         when (val m = currentMode) {
-            is IslandMode.Expanded -> if (dy < 0) expandedKey = null
-            is IslandMode.Alert -> if (dy < 0) IslandRepository.dismissTransient(m.event.id)
+            is IslandMode.Expanded -> if (dy < 0) expandedKey = null else callbacks.openNotificationShade()
+            is IslandMode.Alert -> {
+                IslandRepository.dismissTransient(m.event.id)
+                if (dy > 0) callbacks.openNotificationShade()
+            }
             is IslandMode.Compact -> if (dy > 0) expand(m.activity)
-            else -> Unit
+            IslandMode.Idle, is IslandMode.Charging -> if (dy > 0) callbacks.openNotificationShade()
+            IslandMode.Hidden -> Unit
+        }
+    }
+
+    // S Pen: hovering over a live activity peeks at its expanded view (like Air view);
+    // moving the pen away folds it back.
+    var hoverPeekKey by remember { mutableStateOf<String?>(null) }
+    var hovering by remember { mutableStateOf(false) }
+    LaunchedEffect(hovering, config.sPenHover) {
+        if (!config.sPenHover) return@LaunchedEffect
+        if (hovering) {
+            delay(380)
+            (currentMode as? IslandMode.Compact)?.let {
+                hoverPeekKey = it.activity.key
+                expand(it.activity)
+            }
+        } else if (hoverPeekKey != null) {
+            delay(650)
+            if (expandedKey == hoverPeekKey) expandedKey = null
+            hoverPeekKey = null
         }
     }
     val swipeThreshold = with(density) { 28.dp.toPx() }
@@ -376,6 +419,19 @@ private fun IslandContent(
                     }
                 }
                 .background(Color.Black)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val e = awaitPointerEvent(PointerEventPass.Initial)
+                            val stylus = e.changes.any { it.type == PointerType.Stylus }
+                            when {
+                                stylus && e.type == PointerEventType.Enter -> hovering = true
+                                stylus && e.type == PointerEventType.Exit -> hovering = false
+                                e.type == PointerEventType.Press -> hoverPeekKey = null // a real tap/press takes over
+                            }
+                        }
+                    }
+                }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {

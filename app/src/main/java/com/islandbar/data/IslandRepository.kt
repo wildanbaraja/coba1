@@ -7,6 +7,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+data class SystemUiState(
+    /** Notification panel / quick settings pulled down (and the phone is unlocked). */
+    val shadeOpen: Boolean = false,
+    /** An app has hidden the status bar (video, game, immersive mode). */
+    val fullscreen: Boolean = false,
+)
+
 /**
  * Process-wide state shared between the notification listener (producer),
  * the overlay (consumer) and the settings screen.
@@ -21,6 +28,9 @@ object IslandRepository {
 
     private val _transient = MutableStateFlow<TransientEvent?>(null)
     val transient: StateFlow<TransientEvent?> = _transient.asStateFlow()
+
+    /** What One UI's own chrome is doing, as seen through the accessibility window list. */
+    val systemUi = MutableStateFlow(SystemUiState())
 
     val overlayRunning = MutableStateFlow(false)
     val listenerConnected = MutableStateFlow(false)

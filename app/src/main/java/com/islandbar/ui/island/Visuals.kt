@@ -80,14 +80,17 @@ val Inter = FontFamily(
     Font(R.font.inter_bold, FontWeight.Bold),
 )
 
-/** Text styles tuned to feel like Apple's system UI (tight tracking, tabular digits). */
+/**
+ * Text styles tuned to feel like Apple's system UI (tight tracking, tabular digits).
+ * The font family comes from the surrounding text style: Inter or One UI's system font.
+ */
 internal object IslandType {
-    val title = TextStyle(fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, letterSpacing = (-0.2).sp, color = Color.White)
-    val subtitle = TextStyle(fontFamily = Inter, fontWeight = FontWeight.Normal, fontSize = 13.sp, letterSpacing = (-0.1).sp, color = IslandColors.Gray)
-    val caption = TextStyle(fontFamily = Inter, fontWeight = FontWeight.Medium, fontSize = 11.sp, color = IslandColors.Gray, fontFeatureSettings = "tnum")
-    val compact = TextStyle(fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = (-0.2).sp, fontFeatureSettings = "tnum")
-    val big = TextStyle(fontFamily = Inter, fontWeight = FontWeight.Medium, fontSize = 34.sp, letterSpacing = (-0.8).sp, fontFeatureSettings = "tnum")
-    val button = TextStyle(fontFamily = Inter, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
+    val title = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, letterSpacing = (-0.2).sp, color = Color.White)
+    val subtitle = TextStyle(fontWeight = FontWeight.Normal, fontSize = 13.sp, letterSpacing = (-0.1).sp, color = IslandColors.Gray)
+    val caption = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, color = IslandColors.Gray, fontFeatureSettings = "tnum")
+    val compact = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, letterSpacing = (-0.2).sp, fontFeatureSettings = "tnum")
+    val big = TextStyle(fontWeight = FontWeight.Medium, fontSize = 34.sp, letterSpacing = (-0.8).sp, fontFeatureSettings = "tnum")
+    val button = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color.White)
 }
 
 // ---------------------------------------------------------------------------

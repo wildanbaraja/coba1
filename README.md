@@ -13,8 +13,8 @@ Built with Kotlin + Jetpack Compose. Min Android 11, targets Android 15 (One UI 
 
 | State | Looks like | Gestures |
 |---|---|---|
-| **Idle** | Small pill around the camera | Tap → little bounce |
-| **Compact** | Pill widens: info left & right of the camera | Tap → open app · Long-press / swipe down → expand |
+| **Idle** | Small pill around the camera | Tap → little bounce · Swipe down → notification panel |
+| **Compact** | Pill widens: info left & right of the camera | Tap → open app · Long-press / swipe down / S Pen hover → expand |
 | **Expanded** | Big rounded card under the camera | Tap → open app · Swipe up / tap outside → collapse (auto after 10 s) |
 | **Two activities** | Main pill + a detached circle on the right | Tap circle → swap · Long-press circle → expand it |
 | **Pop-up alert** | Island expands with the sender, title and message | Tap → open · Swipe up → dismiss |
@@ -33,6 +33,28 @@ Live activities are picked up automatically from notifications:
   low-importance and Do-Not-Disturb-filtered notifications are skipped).
 
 Priority for the main pill: call › navigation › timer › media › progress › live update.
+
+## Built for the Galaxy S25 Ultra / One UI
+
+<img src="docs/settings-oneui.png" width="520" alt="One UI-style settings, light and dark">
+
+- **Status-bar aware.** Defaults (118 dp idle / 210 dp active at FHD+) leave One UI's clock and
+  signal/Wi-Fi/battery icons visible; auto-centres on the punch-hole at any screen resolution.
+- **Pull-down works through the island.** Swiping down on the idle island (or an expanded card)
+  opens the notification panel, exactly like swiping the status bar.
+- **Gets out of One UI's way.** The island melts into the camera while the notification panel /
+  quick settings are open, and in full-screen videos and games (optional), like the status bar.
+  This uses only the *type and position* of on-screen windows; no screen content is read.
+- **Now Bar / Live notifications.** One UI 7+ live notifications (Samsung Clock timers,
+  Samsung Health workouts, Voice Recorder, Smart Switch progress…) are picked up from Samsung's
+  `android.ongoingActivityNoti.*` extras. These keys are undocumented, so support is best effort.
+- **S Pen hover to peek.** Hover the S Pen over a live activity and it expands, like Air view;
+  move the pen away and it folds back.
+- **Battery: Unrestricted** setup step so One UI's "deep sleeping apps" can't stop the island.
+- **One UI settings app.** Tall "reachability" header that collapses on scroll, system font
+  (SamsungOne), follows light/dark mode, One UI cards, seek bars, switches and blue accents,
+  plus One UI tips: hide status bar notification icons, set pop-ups to Brief to avoid duplicates.
+- **Island font:** iPhone-style (Inter) or One UI's system font.
 
 ## Motion & design
 
@@ -76,8 +98,10 @@ Requires JDK 17+ and the Android SDK (platform 35). Android Studio works out of 
 4. Use the **Try it** buttons to preview each state, and the **Size & position** sliders to
    line the pill up perfectly with your camera.
 
-Tips for One UI:
-- *Settings › Battery › Background usage limits*: make sure Island Bar is not in "Deep sleeping apps".
+Tips for One UI (also linked from the app):
+- Tap **Battery: Unrestricted** in the app, or check *Settings › Battery › Background usage limits*.
+- *Notifications › Status bar › Show notification icons: None* keeps the left side clear.
+- *Notifications › Notification pop-up style: Brief* (or off) avoids a pop-up next to the island's own alert.
 - If you've enabled *Display › Camera cutout › Hide*, the camera area is blacked out and the
   pill may need a larger height / vertical offset.
 - At non-default screen resolutions (FHD+/QHD+) the pill auto-centres on the camera using the
@@ -104,8 +128,10 @@ AccessibilityService ── charging receiver ──┘                     wind
 
 ## Notes & limitations
 
-- Samsung's own Clock app may draw its timer with custom views; timers only show up when
-  the app uses a standard chronometer notification.
+- Samsung Clock timers come through One UI's live-notification extras, whose keys are undocumented.
+  If a One UI update renames them, Clock timers fall back to not appearing.
+- Full-screen detection infers "status bar hidden" from the window list; it only activates after
+  the status bar has been seen once, so it can never hide the island permanently.
 - Opening apps from the island goes through the notification's `PendingIntent`; a few
   apps restrict background launches, in which case nothing happens on tap.
 - Google Play restricts accessibility-service use; this project is intended for personal

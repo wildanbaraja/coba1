@@ -7,22 +7,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Defaults are tuned for the Galaxy S25 Ultra's centred punch-hole camera. */
+enum class IslandFont { IPHONE, ONE_UI }
+
+/**
+ * Defaults are tuned for the Galaxy S25 Ultra at its default FHD+ resolution:
+ * the active width leaves room for One UI's clock on the left and the
+ * signal/Wi-Fi/battery icons on the right of the status bar.
+ */
 data class IslandConfig(
     val heightDp: Float = 36f,
-    val idleWidthDp: Float = 112f,
-    val compactWidthDp: Float = 236f,
+    val idleWidthDp: Float = 118f,
+    val compactWidthDp: Float = 210f,
     val offsetXDp: Float = 0f,
     val offsetYDp: Float = 0f,
     val showWhenIdle: Boolean = true,
     val showAlerts: Boolean = true,
     val showCharging: Boolean = true,
     val hideInLandscape: Boolean = true,
+    val hideInFullscreen: Boolean = true,
     val hidePausedMedia: Boolean = true,
+    val sPenHover: Boolean = true,
+    val font: IslandFont = IslandFont.IPHONE,
 )
 
 object IslandSettings {
-    private const val PREFS = "island_settings"
+    private const val PREFS = "island_settings_v2"
     private var prefs: SharedPreferences? = null
 
     private val _config = MutableStateFlow(IslandConfig())
@@ -44,7 +53,10 @@ object IslandSettings {
             showAlerts = p.getBoolean("showAlerts", d.showAlerts),
             showCharging = p.getBoolean("showCharging", d.showCharging),
             hideInLandscape = p.getBoolean("hideInLandscape", d.hideInLandscape),
+            hideInFullscreen = p.getBoolean("hideInFullscreen", d.hideInFullscreen),
             hidePausedMedia = p.getBoolean("hidePausedMedia", d.hidePausedMedia),
+            sPenHover = p.getBoolean("sPenHover", d.sPenHover),
+            font = runCatching { IslandFont.valueOf(p.getString("font", d.font.name)!!) }.getOrDefault(d.font),
         )
     }
 
@@ -61,7 +73,10 @@ object IslandSettings {
             putBoolean("showAlerts", c.showAlerts)
             putBoolean("showCharging", c.showCharging)
             putBoolean("hideInLandscape", c.hideInLandscape)
+            putBoolean("hideInFullscreen", c.hideInFullscreen)
             putBoolean("hidePausedMedia", c.hidePausedMedia)
+            putBoolean("sPenHover", c.sPenHover)
+            putString("font", c.font.name)
         }
     }
 
